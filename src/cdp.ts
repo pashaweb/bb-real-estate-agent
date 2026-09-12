@@ -29,6 +29,30 @@ export function configureBrowser(next: Partial<BrowserRuntime>): void {
   runtime = { ...runtime, ...next };
 }
 
+/**
+ * Whether Chrome is showing the document we asked for. A trailing slash is
+ * noise; a different path or query is a different page, and parsing it as the
+ * listing would score the wrong property.
+ */
+const sameDocument = (actual: string, requested: string): boolean => {
+  try {
+    const a = new URL(actual);
+    const b = new URL(requested);
+    return (
+      a.origin === b.origin &&
+      a.pathname.replace(/\/+$/, '') === b.pathname.replace(/\/+$/, '') &&
+      a.search === b.search
+    );
+  } catch {
+    return actual === requested;
+  }
+};
+
+const looksBlocked = (title: string, text: string): boolean => {
+  const haystack = `${title} ${text.slice(0, 4000)}`.toLowerCase();
+  return BLOCK_HINTS.some((h) => haystack.includes(h));
+};
+
 const chromeCandidates = (): string[] =>
   [
     runtime.chromeBin,
@@ -248,6 +272,7 @@ export async function fetchPage(
     await loaded;
 
     let page: any = null;
+    let lastUrl = '';
     const deadline = Date.now() + maxWaitMs;
     while (Date.now() < deadline) {
       await delay(settleMs);
@@ -256,19 +281,36 @@ export async function fetchPage(
         { expression: EXTRACT, returnByValue: true, awaitPromise: true },
         sessionId
       );
-      page = result.value;
-      if (
-        page?.readyState === 'complete' &&
-        (page.text ?? '').length > 800 &&
-        page.text.includes('€')
-      )
-        break;
-    }
-    if (!page) throw new Error('Chrome returned no page content.');
+      const candidate = result.value;
+      if (!candidate) continue;
+      lastUrl = String(candidate.url ?? '');
 
-    const haystack = `${page.title} ${page.text.slice(0, 4000)}`.toLowerCase();
+      // Only ever accept the document we navigated to. Without this the loop
+      // falls through on timeout holding whatever the tab happened to show —
+      // a half-loaded page, or a redirect — and it gets parsed and scored as
+      // though it were the listing.
+      if (!sameDocument(lastUrl, url)) continue;
+      page = candidate;
+
+      const text = String(page.text ?? '');
+      if (page.readyState !== 'complete') continue;
+      // A challenge is a final state, not a slow load: stop rather than
+      // spending the whole deadline waiting for content that will not come.
+      if (looksBlocked(String(page.title ?? ''), text)) break;
+      if (text.length > 800 && text.includes('€')) break;
+    }
+
+    if (!page) {
+      throw new Error(
+        lastUrl && lastUrl !== 'about:blank'
+          ? `Chrome ended up on ${lastUrl} instead of ${url}. The listing may have been withdrawn or redirected — nothing was scored.`
+          : `Chrome did not load ${url} within ${Math.round(maxWaitMs / 1000)}s.`
+      );
+    }
+
     const blocked =
-      BLOCK_HINTS.some((h) => haystack.includes(h)) || page.text.length < 400;
+      looksBlocked(String(page.title ?? ''), String(page.text ?? '')) ||
+      String(page.text ?? '').length < 400;
     if (blocked) {
       return {
         blocked: true,
