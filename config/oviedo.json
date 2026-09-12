@@ -1,0 +1,392 @@
+{
+  "city": "Oviedo",
+  "currency": "EUR",
+  "source": "Asking-price and rent indicators quoted in the ChatGPT 'Oviedo Districts To Avoid' session (Idealista / Fotocasa / Indomio, 2026). Re-check before acting on a score.",
+  "asOf": "2026-09",
+  "costs": {
+    "itpRate": 0.08,
+    "notaryRegistryRate": 0.015,
+    "heatingInstallCost": 6000,
+    "cosmeticCost": 5000,
+    "renovationCostPerM2": 450
+  },
+  "rentAdjustments": {
+    "interior": 0.96,
+    "noElevator": 0.94,
+    "noHeating": 0.95,
+    "needsRenovation": 0.88,
+    "highFloorNoElevator": 0.97,
+    "smallUnitPremium": 1.15,
+    "smallUnitMaxM2": 60
+  },
+  "weights": {
+    "location": 0.18,
+    "rentalDemand": 0.15,
+    "price": 0.17,
+    "resale": 0.15,
+    "building": 0.13,
+    "safety": 0.1,
+    "yield": 0.12
+  },
+  "riskPenalties": {
+    "rentaAntigua": 1.0,
+    "auction": 2.5,
+    "occupied": 1.2,
+    "buyerAgencyFee": 0.2,
+    "unknownHeating": 0.15,
+    "aiEditedPhotos": 0.1,
+    "outsideCity": 0
+  },
+  "microLocation": [
+    {
+      "match": [
+        "campus del milán",
+        "campus del milan",
+        "milán-pumarín",
+        "milan-pumarin"
+      ],
+      "label": "Campus del Milán",
+      "location": 0.5,
+      "rentalDemand": 0.5
+    },
+    {
+      "match": [
+        "huca",
+        "hospital universitario"
+      ],
+      "label": "HUCA",
+      "rentalDemand": 0.5
+    },
+    {
+      "match": [
+        "universidad",
+        "campus",
+        "facultad"
+      ],
+      "label": "University",
+      "rentalDemand": 0.5
+    },
+    {
+      "match": [
+        "catedral",
+        "casco histórico",
+        "casco historico",
+        "campillín",
+        "campillin"
+      ],
+      "label": "Historic centre",
+      "location": 0.3
+    }
+  ],
+  "districts": [
+    {
+      "key": "ciudad-naranco-prados",
+      "name": "Ciudad Naranco - Prados de la Fuente",
+      "aliases": [
+        "prados de la fuente",
+        "ciudad naranco"
+      ],
+      "salePerM2": 2564,
+      "rentPerM2": 12.0,
+      "location": 9.0,
+      "safety": 8.5,
+      "rentalDemand": 8.5,
+      "flag": "green",
+      "note": "One of the strongest Oviedo districts. +13.7% YoY asking price."
+    },
+    {
+      "key": "ciudad-naranco-vallobin",
+      "name": "Ciudad Naranco - Vallobin",
+      "aliases": [
+        "vallobín",
+        "vallobin"
+      ],
+      "salePerM2": 2324,
+      "rentPerM2": 11.5,
+      "location": 9.0,
+      "safety": 8.5,
+      "rentalDemand": 8.5,
+      "flag": "green",
+      "note": "Preferred buying area: good long-term value and easy resale."
+    },
+    {
+      "key": "la-eria-masip",
+      "name": "Masip - La Eria - Parque del Oeste",
+      "aliases": [
+        "la ería",
+        "la eria",
+        "masip",
+        "parque del oeste",
+        "argañosa",
+        "arganosa"
+      ],
+      "salePerM2": 2490,
+      "rentPerM2": 11.5,
+      "location": 9.0,
+      "safety": 8.5,
+      "rentalDemand": 8.0,
+      "flag": "green",
+      "note": "Preferred buying area."
+    },
+    {
+      "key": "buenavista-montecerrao",
+      "name": "Buenavista - Eria - Montecerrao",
+      "aliases": [
+        "buenavista",
+        "montecerrao"
+      ],
+      "salePerM2": 2490,
+      "rentPerM2": 11.5,
+      "location": 8.5,
+      "safety": 8.0,
+      "rentalDemand": 7.5,
+      "flag": "green",
+      "note": "Solid residential area."
+    },
+    {
+      "key": "huca-cadellada",
+      "name": "HUCA - La Cadellada",
+      "aliases": [
+        "la cadellada",
+        "cadellada",
+        "huca"
+      ],
+      "salePerM2": 2400,
+      "rentPerM2": 11.5,
+      "location": 8.5,
+      "safety": 8.0,
+      "rentalDemand": 9.0,
+      "flag": "green",
+      "note": "Hospital demand keeps rental occupancy high."
+    },
+    {
+      "key": "centro",
+      "name": "Centro - Casco Historico",
+      "aliases": [
+        "centro",
+        "casco histórico",
+        "casco historico",
+        "uría",
+        "uria"
+      ],
+      "salePerM2": 2809,
+      "rentPerM2": 11.5,
+      "location": 9.0,
+      "safety": 8.0,
+      "rentalDemand": 8.5,
+      "flag": "green",
+      "note": "Excellent but expensive."
+    },
+    {
+      "key": "santo-domingo-campillin",
+      "name": "Santo Domingo - El Campillin",
+      "aliases": [
+        "santo domingo",
+        "el campillín",
+        "campillín",
+        "campillin"
+      ],
+      "salePerM2": 2480,
+      "rentPerM2": 11.0,
+      "location": 9.5,
+      "safety": 8.0,
+      "rentalDemand": 9.0,
+      "flag": "green",
+      "note": "Edge of the historic centre; +8.2% YoY. Very walkable, strong rental location."
+    },
+    {
+      "key": "parque-invierno",
+      "name": "Parque de Invierno - Auditorio - Seminario",
+      "aliases": [
+        "parque de invierno",
+        "auditorio",
+        "seminario"
+      ],
+      "salePerM2": 3117,
+      "rentPerM2": 12.0,
+      "location": 9.0,
+      "safety": 8.5,
+      "rentalDemand": 7.5,
+      "flag": "green",
+      "note": "Most expensive district in the city."
+    },
+    {
+      "key": "milan-pumarin",
+      "name": "Milan - Pumarin",
+      "aliases": [
+        "milán",
+        "milan",
+        "milán-pumarín",
+        "milan-pumarin"
+      ],
+      "salePerM2": 2309,
+      "rentPerM2": 11.0,
+      "location": 8.0,
+      "safety": 6.5,
+      "rentalDemand": 8.5,
+      "flag": "amber",
+      "note": "Campus del Milan drives student demand, but Pumarin has recent crime reports. Very street-dependent."
+    },
+    {
+      "key": "pumarin-teatinos",
+      "name": "Pumarin - Teatinos",
+      "aliases": [
+        "pumarín",
+        "pumarin",
+        "teatinos",
+        "los prados"
+      ],
+      "salePerM2": 2309,
+      "rentPerM2": 11.0,
+      "location": 7.5,
+      "safety": 6.5,
+      "rentalDemand": 8.0,
+      "flag": "amber",
+      "note": "Select carefully: thefts and security concerns reported in 2026. Good individual properties only."
+    },
+    {
+      "key": "corredoria",
+      "name": "La Corredoria - Prado de la Vega",
+      "aliases": [
+        "la corredoria",
+        "corredoria",
+        "prado de la vega"
+      ],
+      "salePerM2": 2237,
+      "rentPerM2": 10.5,
+      "location": 7.5,
+      "safety": 6.0,
+      "rentalDemand": 7.5,
+      "flag": "amber",
+      "note": "Large mixed neighbourhood; newer buildings are considerably better. Thefts/altercations reported Feb 2026."
+    },
+    {
+      "key": "otero-san-lazaro",
+      "name": "Otero - Villafria - San Lazaro",
+      "aliases": [
+        "otero",
+        "villafría",
+        "villafria",
+        "san lázaro",
+        "san lazaro"
+      ],
+      "salePerM2": 2291,
+      "rentPerM2": 10.5,
+      "location": 7.0,
+      "safety": 6.0,
+      "rentalDemand": 7.0,
+      "flag": "amber",
+      "note": "Security complaints in parts of San Lazaro (Feb 2026)."
+    },
+    {
+      "key": "ventanielles",
+      "name": "Ventanielles",
+      "aliases": [
+        "ventanielles"
+      ],
+      "salePerM2": 1520,
+      "rentPerM2": 9.5,
+      "location": 5.5,
+      "safety": 4.5,
+      "rentalDemand": 6.5,
+      "flag": "red",
+      "note": "Cheapest major area; 2026 complaints about crime, vandalism and degradation. BUT +30.1% appreciation - judge the exact street and price, do not auto-exclude."
+    },
+    {
+      "key": "parroquias",
+      "name": "Parroquias / peripheral",
+      "aliases": [
+        "parroquias",
+        "olloniego",
+        "la manjoya",
+        "manjoya",
+        "colloto",
+        "trubia",
+        "tudela veguín",
+        "tudela veguin",
+        "san claudio",
+        "latores"
+      ],
+      "salePerM2": 1500,
+      "rentPerM2": 8.5,
+      "location": 5.5,
+      "safety": 7.0,
+      "rentalDemand": 4.5,
+      "flag": "amber",
+      "note": "Cheap, but weak liquidity and slow resale. Investment caution."
+    },
+    {
+      "key": "fozaneldi-tenderina",
+      "name": "Fozaneldi - Tenderina",
+      "aliases": [
+        "fozaneldi",
+        "tenderina"
+      ],
+      "salePerM2": 1750,
+      "rentPerM2": 9.5,
+      "location": 6.5,
+      "safety": 6.5,
+      "rentalDemand": 7.0,
+      "flag": "amber",
+      "estimated": true,
+      "note": "Working-class east-side district, among the cheaper parts of the city. Estimate, not from the source session."
+    },
+    {
+      "key": "guillen-lafuerza",
+      "name": "Guillen Lafuerza",
+      "aliases": [
+        "guillén lafuerza",
+        "guillen lafuerza"
+      ],
+      "salePerM2": 1950,
+      "rentPerM2": 10.0,
+      "location": 7.0,
+      "safety": 7.0,
+      "rentalDemand": 7.0,
+      "flag": "amber",
+      "estimated": true,
+      "note": "Estimate, not from the source session."
+    },
+    {
+      "key": "la-florida-las-campas",
+      "name": "La Florida - Las Campas",
+      "aliases": [
+        "la florida",
+        "las campas"
+      ],
+      "salePerM2": 2150,
+      "rentPerM2": 10.5,
+      "location": 7.5,
+      "safety": 7.5,
+      "rentalDemand": 7.0,
+      "flag": "green",
+      "estimated": true,
+      "note": "Estimate, not from the source session."
+    },
+    {
+      "key": "el-cristo",
+      "name": "El Cristo",
+      "aliases": [
+        "el cristo"
+      ],
+      "salePerM2": 2400,
+      "rentPerM2": 11.0,
+      "location": 8.0,
+      "safety": 7.5,
+      "rentalDemand": 8.0,
+      "flag": "green",
+      "estimated": true,
+      "note": "Estimate, not from the source session. Hospital and university demand nearby."
+    }
+  ],
+  "cityFallback": {
+    "name": "Oviedo (city average)",
+    "salePerM2": 2300,
+    "rentPerM2": 10.5,
+    "location": 7.0,
+    "safety": 7.0,
+    "rentalDemand": 7.0,
+    "flag": "amber",
+    "note": "District not recognised. Scored against a city-wide average, so the price and yield scores are rough — add the district to config/oviedo.json for a sharper result."
+  }
+}
