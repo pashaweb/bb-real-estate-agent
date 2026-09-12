@@ -6,7 +6,7 @@
 // models, run in a hidden thread so any provider BB can talk to can serve it.
 // Reading the page needs a real browser, which lives in host.ts.
 
-import type { BbPluginApi } from '@get-bb/plugin-sdk';
+import { defineRpcContract, type BbPluginApi } from '@get-bb/plugin-sdk';
 import { z } from 'zod';
 import { hostContract } from './contract.js';
 import { parseListing } from './src/parse.js';
@@ -14,7 +14,7 @@ import { buildPrompt, extractScore } from './src/prompt.js';
 import { config as scoringConfig, scoreListing } from './src/score.js';
 import type { Listing, ModelOption, ModelVerdict, Score } from './src/types.js';
 
-interface Row {
+export interface Row {
   id: number;
   url: string;
   listing: Listing;
@@ -23,6 +23,69 @@ interface Row {
   addedAt: string;
   updatedAt: string;
 }
+
+/**
+ * Rows carry the scorer's own output verbatim. Validating the nested Listing
+ * and Score shapes again here would duplicate src/types.ts without adding
+ * safety: this is our data going out, not freeform input coming in.
+ */
+const rowSchema = z.object({
+  id: z.number(),
+  url: z.string(),
+  listing: z.any(),
+  score: z.any(),
+  verdict: z.any().nullable(),
+  addedAt: z.string(),
+  updatedAt: z.string(),
+});
+
+const modelSchema = z.object({
+  id: z.string(),
+  ref: z.string(),
+  displayName: z.string(),
+  description: z.string(),
+  providerId: z.string(),
+  providerName: z.string(),
+  isDefault: z.boolean(),
+});
+
+export const rpcContract = defineRpcContract({
+  listings_list: {
+    input: z.null(),
+    output: z.object({ listings: z.array(rowSchema) }),
+  },
+  listings_add: {
+    input: z
+      .object({
+        url: z.string().min(1).max(2000),
+        askModel: z.boolean().optional(),
+        model: z.string().max(200).optional(),
+      })
+      .strict(),
+    output: z.object({ listing: rowSchema }),
+  },
+  listings_evaluate: {
+    input: z
+      .object({ id: z.number().int().positive(), model: z.string().max(200).optional() })
+      .strict(),
+    output: z.object({ listing: rowSchema }),
+  },
+  listings_remove: {
+    input: z.object({ id: z.number().int().positive() }).strict(),
+    output: z.object({ removed: z.boolean() }),
+  },
+  models_list: {
+    input: z.null(),
+    output: z.object({ models: z.array(modelSchema), selected: z.string() }),
+  },
+  model_select: {
+    input: z.object({ ref: z.string().min(1).max(200) }).strict(),
+    output: z.object({ selected: z.string() }),
+  },
+});
+
+/** Frontend views refetch when this fires. */
+const LISTINGS_CHANGED = 'listings-changed';
 
 const eur = (n: number | null | undefined) =>
   n == null ? '—' : `€${Math.round(n).toLocaleString('es-ES')}`;
@@ -131,7 +194,9 @@ export default async function plugin(bb: BbPluginApi) {
                                       score   = excluded.score,
                                       updated_at = excluded.updated_at`
     ).run(url, JSON.stringify(listing), JSON.stringify(score), ts, ts);
-    return findRow(url)!;
+    const saved = findRow(url)!;
+    bb.realtime.publish(LISTINGS_CHANGED, { id: saved.id });
+    return saved;
   }
 
   // ----------------------------------------------------------------- models
@@ -332,6 +397,7 @@ export default async function plugin(bb: BbPluginApi) {
       nowIso(),
       row.id
     );
+    bb.realtime.publish(LISTINGS_CHANGED, { id: row.id });
     return verdict;
   }
 
@@ -383,6 +449,59 @@ export default async function plugin(bb: BbPluginApi) {
     return out.join('\n');
   }
 
+  // -------------------------------------------------------------------- RPC
+  // The panel in app.tsx talks to these; the CLI above shares the same helpers.
+  bb.rpc.register(rpcContract, {
+    listings_list() {
+      return { listings: allRows().sort((a, b) => b.score.overall - a.score.overall) };
+    },
+
+    async listings_add({ url, askModel, model }) {
+      const row = await fetchAndScore(url);
+      if (askModel === false) return { listing: row };
+      const auto = (await settings.get()).autoEvaluate;
+      if (!auto && askModel !== true) return { listing: row };
+      await evaluate(row, model, undefined);
+      return { listing: findRow(String(row.id))! };
+    },
+
+    async listings_evaluate({ id, model }) {
+      const row = findRow(String(id));
+      if (!row) throw new Error(`No listing ${id}.`);
+      await evaluate(row, model, undefined);
+      return { listing: findRow(String(id))! };
+    },
+
+    listings_remove({ id }) {
+      const removed = db.prepare('DELETE FROM listings WHERE id = ?').run(id).changes > 0;
+      if (removed) bb.realtime.publish(LISTINGS_CHANGED, { id });
+      return { removed };
+    },
+
+    async models_list() {
+      const models = await availableModels();
+      return {
+        models: models.map((m) => ({
+          id: m.id,
+          ref: modelRef(m),
+          displayName: m.displayName,
+          description: m.description,
+          providerId: m.providerId,
+          providerName: m.providerName,
+          isDefault: m.isDefault,
+        })),
+        selected: String((await settings.get()).evaluationModel ?? ''),
+      };
+    },
+
+    async model_select({ ref }) {
+      const { model } = await resolveModel(ref);
+      if (!model) throw new Error('No models available.');
+      await settings.experimental_set({ evaluationModel: modelRef(model) });
+      return { selected: modelRef(model) };
+    },
+  });
+
   // -------------------------------------------------------------------- CLI
   bb.cli.register({
     name: 'real-estate',
@@ -395,6 +514,7 @@ export default async function plugin(bb: BbPluginApi) {
       { name: 'show', summary: 'Full breakdown for one listing', usage: 'bb real-estate show <id|url>' },
       { name: 'evaluate', summary: 'Ask a model about a listing already added', usage: 'bb real-estate evaluate <id|url> [--model <id>]' },
       { name: 'remove', summary: 'Drop a listing', usage: 'bb real-estate remove <id|url>' },
+      { name: 'import', summary: "Import the standalone app's listings", usage: 'bb real-estate import <path-to-listings.db>' },
     ],
 
     async run(argv, ctx) {
@@ -481,11 +601,53 @@ export default async function plugin(bb: BbPluginApi) {
             };
           }
 
+          case 'import': {
+            if (!arg) {
+              return {
+                exitCode: 2,
+                stderr: 'Usage: bb real-estate import <path-to-listings.db>',
+              };
+            }
+            const hostId = await resolveHostId(ctx.threadId, ctx.signal);
+            const { rows } = await host.call(
+              'readLegacyDb',
+              { path: arg },
+              { hostId, signal: ctx.signal }
+            );
+            let added = 0;
+            let updated = 0;
+            for (const r of rows) {
+              const listing = JSON.parse(r.listing) as Listing;
+              const existed = Boolean(findRow(r.url));
+              const saved = saveListing(r.url, listing, scoreListing(listing));
+              existed ? updated++ : added++;
+              if (r.verdictText) {
+                const verdict: ModelVerdict = {
+                  modelId: 'imported/chatgpt',
+                  providerId: 'imported',
+                  score: r.verdictScore,
+                  text: r.verdictText,
+                  threadId: '',
+                  at: r.verdictAt ?? nowIso(),
+                };
+                db.prepare(
+                  'UPDATE listings SET verdict = ?, updated_at = ? WHERE id = ?'
+                ).run(JSON.stringify(verdict), nowIso(), saved.id);
+              }
+            }
+            bb.realtime.publish(LISTINGS_CHANGED, { imported: rows.length });
+            return {
+              exitCode: 0,
+              stdout: `Imported ${rows.length} listings (${added} new, ${updated} updated). Scores recomputed with this plugin's config.`,
+            };
+          }
+
           case 'remove': {
             if (!arg) return { exitCode: 2, stderr: 'Usage: bb real-estate remove <id|url>' };
             const row = findRow(arg);
             if (!row) return { exitCode: 1, stderr: `No listing ${arg}.` };
             db.prepare('DELETE FROM listings WHERE id = ?').run(row.id);
+            bb.realtime.publish(LISTINGS_CHANGED, { id: row.id });
             return { exitCode: 0, stdout: `Removed #${row.id}.` };
           }
 
@@ -501,6 +663,7 @@ export default async function plugin(bb: BbPluginApi) {
                 '  bb real-estate show <id|url>',
                 '  bb real-estate evaluate <id|url> [--model <id>]',
                 '  bb real-estate remove <id|url>',
+                '  bb real-estate import <path-to-listings.db>',
               ].join('\n'),
             };
         }

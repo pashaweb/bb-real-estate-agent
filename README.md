@@ -12,6 +12,35 @@ bb real-estate show <id>                   # full breakdown
 bb real-estate evaluate <id> --model haiku # re-ask, or ask a different model
 ```
 
+## The Listings panel
+
+`app.slots.navPanel` gives the plugin its own sidebar entry and owns the route
+`/plugins/real-estate-agent/listings`: an add form, the ranked table (local
+score, model score, verdict and risk pills, price, €/m², vs-area, lift, heat,
+rent, yield, fair price — every column sortable), and a detail dialog with the
+score bars, risks, economics, price ladder and pre-offer checklist.
+
+It talks to the backend over `bb.rpc` rather than HTTP, so there is no port and
+the calls are typed end-to-end from one shared contract. The server publishes a
+`listings-changed` signal after every write, and the panel subscribes with
+`useRealtime`, so a listing added from the CLI or by an agent appears in an open
+panel immediately. Styling uses BB's theme tokens, so it follows whatever theme
+you are on.
+
+## Importing from the standalone app
+
+This plugin grew out of a standalone local app with its own SQLite. To bring
+that data across:
+
+```bash
+bb real-estate import ~/Personal/real-estate-agent/data/listings.db
+```
+
+Manual corrections stored there win over the scraped fields, exactly as they did
+in that app, and any pasted second opinion is kept as an `imported/chatgpt`
+verdict. Scores are recomputed with this plugin's config rather than copied. The
+file is read on the machine that invoked the command, through the host entry.
+
 ## Choosing the evaluation model
 
 `providers.models` is per-provider — called without a `providerId` it answers
@@ -84,7 +113,10 @@ surface, the actual rental contract) is where the real answers are.
 ## Layout
 
 ```
-server.ts            settings, storage, model resolution, CLI, agent tool
+app.tsx              the Listings panel: add form, ranked table, sorting
+components/          listing-detail.tsx, plus BB's vendored ui/ primitives
+lib/format.ts        shared currency/score formatting
+server.ts            settings, storage, model resolution, RPC, CLI, agent tool
 host.ts              full-trust entry — the only place that drives Chrome
 contract.ts          the RPC contract shared by the two
 src/cdp.ts           Chrome DevTools Protocol client

@@ -18,12 +18,17 @@
     },
     "noEmit": true,
     "skipLibCheck": true,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "jsx": "react-jsx"
   },
   "include": [
     "server.ts",
     "host.ts",
     "contract.ts",
-    "src"
+    "app.tsx",
+    "src",
+    "components",
+    "lib",
+    "hooks"
   ]
 }

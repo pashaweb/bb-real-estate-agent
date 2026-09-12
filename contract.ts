@@ -24,6 +24,23 @@ export const hostContract = defineRpcContract({
       })
       .strict(),
   },
+  /** Reads the standalone app's SQLite, on the machine that invoked the command. */
+  readLegacyDb: {
+    input: z.object({ path: z.string().min(1) }).strict(),
+    output: z
+      .object({
+        rows: z.array(
+          z.object({
+            url: z.string(),
+            listing: z.string(),
+            verdictText: z.string().nullable(),
+            verdictScore: z.number().nullable(),
+            verdictAt: z.string().nullable(),
+          })
+        ),
+      })
+      .strict(),
+  },
   fetchListing: {
     input: z
       .object({
