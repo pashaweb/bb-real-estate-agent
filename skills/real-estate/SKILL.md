@@ -36,6 +36,16 @@ Two numbers, deliberately kept apart:
 When they diverge, say so and explain which input drives the gap rather than
 averaging them.
 
+## Never evaluate from inside an evaluation
+
+If your prompt already contains a listing's facts and a score to challenge, you
+are the evaluation. Answer from what you were given. Do not call
+`real_estate_score_listing` or `bb real-estate` — that scrapes the listing again
+and spawns another evaluation thread, which does the same.
+
+`add` and the tool only spend a model turn when asked: the tool's `askModel`
+defaults to false, so a plain score costs nothing.
+
 ## Cautions
 
 - District figures are dated benchmarks and some are explicitly marked as

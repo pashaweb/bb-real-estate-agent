@@ -162,6 +162,9 @@ export default async function plugin(bb: BbPluginApi) {
 
   const host = bb.hosts.experimental_client({ contract: hostContract });
 
+  /** Listing ids with an evaluation thread in flight. */
+  const evaluating = new Set<number>();
+
   // ---------------------------------------------------------------- storage
   const hydrate = (r: any): Row => ({
     id: r.id,
@@ -356,6 +359,27 @@ export default async function plugin(bb: BbPluginApi) {
    * provider backs the selected model.
    */
   async function evaluate(
+    row: Row,
+    requestedModel: string | undefined,
+    ctxProjectId: string | undefined,
+    signal?: AbortSignal
+  ): Promise<ModelVerdict> {
+    // One evaluation per listing at a time. Without this, repeated clicks or a
+    // retrying caller stack several threads on the same property.
+    if (evaluating.has(row.id)) {
+      throw new Error(
+        `An evaluation for #${row.id} is already running — wait for it to finish.`
+      );
+    }
+    evaluating.add(row.id);
+    try {
+      return await runEvaluation(row, requestedModel, ctxProjectId, signal);
+    } finally {
+      evaluating.delete(row.id);
+    }
+  }
+
+  async function runEvaluation(
     row: Row,
     requestedModel: string | undefined,
     ctxProjectId: string | undefined,
@@ -692,12 +716,14 @@ export default async function plugin(bb: BbPluginApi) {
       askModel: z
         .boolean()
         .optional()
-        .describe('Ask a model to second-guess the deterministic score (default true)'),
+        .describe(
+          'Spawn a separate thread for a model to second-guess the score. Defaults to false: the deterministic score needs no model turn.'
+        ),
     }),
     async execute({ url, model, askModel }, { threadId, projectId, signal }) {
       try {
         const row = await fetchAndScore(url, threadId ?? undefined, signal ?? undefined);
-        if (askModel === false) return detail(row);
+        if (askModel !== true) return detail(row);
         const verdict = await evaluate(row, model, projectId ?? undefined, signal ?? undefined);
         return `${detail(row)}\n\n--- ${verdict.modelId} ---\n${verdict.text}`;
       } catch (err) {
@@ -708,6 +734,20 @@ export default async function plugin(bb: BbPluginApi) {
       }
     },
   });
+
+  // An evaluation thread is handed the listing and our working already. If it
+  // also gets this plugin's tool and skill, it calls back in, which scrapes and
+  // spawns another evaluation thread, and so on — a fan-out that does not stop.
+  bb.agents.configure((context) =>
+    context.origin.pluginId === bb.pluginId
+      ? {
+          tools: [],
+          skills: [],
+          instructions:
+            'Everything you need about this listing is in the prompt. Do not call real-estate tools or commands; answer from what you were given.',
+        }
+      : { tools: ['real_estate_score_listing'], skills: ['real-estate'] }
+  );
 
   bb.log.info(
     `ready — ${scoringConfig.districts.length} ${scoringConfig.city} districts, ${allRows().length} listings stored`
